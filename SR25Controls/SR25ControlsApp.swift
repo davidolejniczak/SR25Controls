@@ -45,8 +45,8 @@ class UDPClient: ObservableObject {
             connection?.start(queue: .global())
         }
     
-    func sendDatatoApp(p : Double, r : Double, y : Double){
-        let instruction = "\(p),\(r),\(y)"
+    func sendDatatoApp(p : Double, r : Double, y : Double, t:Int32){
+        let instruction = "\(p),\(r),\(y),\(t)"
         let data = instruction.data(using: .utf8)
         connection?.send(content: data, completion: .contentProcessed({ error in
             if let error = error {
@@ -92,7 +92,7 @@ class PhoneMotion: ObservableObject {
                     let roll = currentAttitude.roll
                     let yaw = currentAttitude.yaw
                     
-                    self.udpClient.sendDatatoApp(p: pitch, r: roll, y: yaw) // sent in rad
+                    self.udpClient.sendDatatoApp(p: pitch, r: roll, y: yaw, t: self.phone_controls.throttle) // sent in rad
                     
                     DispatchQueue.main.async {
                         self.phone_controls.pitch = pitch
@@ -115,7 +115,6 @@ class PhoneMotion: ObservableObject {
         phone_controls.gyroEnabled = false
     }
 }
-
 
 @main
 struct SR25ControlsApp: App {
