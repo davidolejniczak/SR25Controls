@@ -34,7 +34,7 @@ class UDPClient: ObservableObject {
         var host: NWEndpoint.Host
         var port: NWEndpoint.Port
 
-        init(address: String = "", port: UInt16 = 8080) {
+        init(address: String = "172.20.10.2", port: UInt16 = 8080) {
             self.host = NWEndpoint.Host(address)
             self.port = NWEndpoint.Port(rawValue: port)!
             connect()
@@ -46,11 +46,22 @@ class UDPClient: ObservableObject {
         }
     
     func sendDatatoApp(p : Double, r : Double, y : Double, t:Int32){
-        let instruction = "\(p),\(r),\(y),\(t)"
+        let instruction = "DATA,\(p),\(r),\(y),\(t)"
         let data = instruction.data(using: .utf8)
         connection?.send(content: data, completion: .contentProcessed({ error in
             if let error = error {
                 print("Send error: \(error)")
+            }
+        }))
+    }
+    
+    func sendGyroResetToApp(_ refAlt: CMAttitude) {
+        // Prepare a reset instruction with the reference attitude's Euler angles (radians)
+        let resetInstruction = "RESET,\(refAlt.pitch),\(refAlt.roll),\(refAlt.yaw)"
+        guard let data = resetInstruction.data(using: .utf8) else { return }
+        connection?.send(content: data, completion: .contentProcessed({ error in
+            if let error = error {
+                print("Send reset error: \(error)")
             }
         }))
     }
@@ -67,6 +78,8 @@ class PhoneMotion: ObservableObject {
     init(controls: PhoneControls) {
         self.phone_controls = controls
         sensorQueue.qualityOfService = .userInteractive
+        resetMotion()
+        udpClient.sendGyroResetToApp(referenceAttitude)
         startMotionUpdates()
         
     }
@@ -107,6 +120,7 @@ class PhoneMotion: ObservableObject {
     func resetMotion() {
         if let currentAttitude = motion.deviceMotion {
             self.referenceAttitude = currentAttitude.attitude
+            udpClient.sendGyroResetToApp(self.referenceAttitude!)
         }
     }
     
